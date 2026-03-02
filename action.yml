@@ -26,6 +26,9 @@ inputs:
   extraAttributes:
     description: Extra resource attributes to add to each span
     required: false
+  otlpCertificate:
+    description: Path to the destination certificate for secure OTLP connection
+    required: false
 outputs:
   traceId:
     description: The OpenTelemetry Trace ID of the root span

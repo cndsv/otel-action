@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/suspicious/noBitwiseOperators: needed for the number generator */
-import { credentials, Metadata } from "@grpc/grpc-js";
+import { type ChannelCredentials, credentials, Metadata } from "@grpc/grpc-js";
 import { type Attributes, context, trace } from "@opentelemetry/api";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
 import { OTLPTraceExporter as GrpcOTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
@@ -34,7 +34,7 @@ function isHttpEndpoint(endpoint: string) {
   return endpoint.startsWith("https://") || endpoint.startsWith("http://");
 }
 
-function createTracerProvider(endpoint: string, headers: string, attributes: Attributes) {
+function createTracerProvider(endpoint: string, headers: string, attributes: Attributes, rootCertificate?: Buffer) {
   // Register the context manager to enable context propagation
   const contextManager = new AsyncLocalStorageContextManager();
   contextManager.enable();
@@ -47,11 +47,15 @@ function createTracerProvider(endpoint: string, headers: string, attributes: Att
       exporter = new ProtoOTLPTraceExporter({
         url: endpoint,
         headers: stringToRecord(headers),
+        ...(rootCertificate && { httpAgentOptions: { ca: rootCertificate } }),
       });
     } else {
+      const grpcCredentials: ChannelCredentials = rootCertificate
+        ? credentials.createSsl(rootCertificate)
+        : credentials.createSsl();
       exporter = new GrpcOTLPTraceExporter({
         url: endpoint,
-        credentials: credentials.createSsl(),
+        credentials: grpcCredentials,
         metadata: Metadata.fromHttp2Headers(stringToRecord(headers)),
       });
     }

@@ -6,4 +6,4 @@ coverage
 .env.test
 
 .DS_Store
-node_modules
+node_modules/

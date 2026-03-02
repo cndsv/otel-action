@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import * as core from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 import type { RequestError } from "@octokit/request-error";
@@ -58,6 +59,8 @@ async function run() {
     const runId = Number.parseInt(core.getInput("runId") || `${context.runId}`, 10);
     const extraAttributes = stringToRecord(core.getInput("extraAttributes"));
     const ghToken = core.getInput("githubToken") || process.env["GITHUB_TOKEN"] || "";
+    const otlpCertificatePath = core.getInput("otlpCertificate");
+    const rootCertificate = otlpCertificatePath ? readFileSync(otlpCertificatePath) : undefined;
 
     core.info("Use Github API to fetch workflow data");
     const { workflowRun, jobs, jobAnnotations, prLabels } = await fetchGithub(ghToken, runId);
@@ -75,7 +78,7 @@ async function run() {
       [ATTR_SERVICE_VERSION]: workflowRun.head_sha,
       ...extraAttributes,
     };
-    const provider = createTracerProvider(otlpEndpoint, otlpHeaders, attributes);
+    const provider = createTracerProvider(otlpEndpoint, otlpHeaders, attributes, rootCertificate);
 
     core.info(`Trace workflow run for ${runId} and export to ${otlpEndpoint}`);
     const traceId = traceWorkflowRun(workflowRun, jobs, jobAnnotations, prLabels);
